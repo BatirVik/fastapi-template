@@ -23,7 +23,7 @@ def anyio_backend():
 @pytest.fixture(autouse=True, scope="session")
 async def db_lifespan(worker_id: Any):
     test_db_name = f"test_{worker_id}"
-    await DB.connect(config.POSTGRES_URL.encoded_string())
+    await DB.connect(config.DB_URL.encoded_string())
 
     async with DB.get_connection() as conn:
         _ = await conn.execution_options(isolation_level="AUTOCOMMIT")
@@ -35,9 +35,9 @@ async def db_lifespan(worker_id: Any):
         _ = await conn.execute(text(f"CREATE DATABASE {test_db_name}"))
 
     # Reconnect to newly created test database
-    host_info = config.POSTGRES_URL.hosts()[0]
+    host_info = config.DB_URL.hosts()[0]
     url = PostgresDsn.build(
-        scheme=config.POSTGRES_URL.scheme,
+        scheme=config.DB_URL.scheme,
         username=host_info.get("username"),
         password=host_info.get("password"),
         host=host_info.get("host"),

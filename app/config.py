@@ -1,27 +1,26 @@
 import os
 import sys
+from functools import lru_cache
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, PostgresDsn
+from pydantic import BaseModel, PostgresDsn
 
 TEST = "pytest" in sys.modules
 
 
 class Config(BaseModel, frozen=True):
     PROD: bool = False
-    POSTGRES_URL: PostgresDsn
-    JWT_SECRET: str = Field(min_length=40)
+
+    DB_URL: PostgresDsn
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 10
+
+    JWT_SECRET: str
 
 
+@lru_cache
 def get_config() -> Config:
     """Get singleton Config"""
-    global _config
-    if _config:
-        return _config
-
     _ = load_dotenv(".env.test" if TEST else ".env")
     _config = Config.model_validate(os.environ, extra="ignore")
     return _config
-
-
-_config: Config | None = None

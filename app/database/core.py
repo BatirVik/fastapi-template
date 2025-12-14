@@ -13,7 +13,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from app.config import get_config
 from app.logger import logger
+
+config = get_config()
 
 
 class DB:
@@ -25,7 +28,14 @@ class DB:
         if cls.engine or cls.session_factory:
             await cls.disconnect()
 
-        engine = create_async_engine(url, pool_pre_ping=True)
+        engine = create_async_engine(
+            url,
+            pool_size=config.DB_POOL_SIZE,
+            max_overflow=config.DB_MAX_OVERFLOW,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            pool_timeout=30,
+        )
         session_factory = async_sessionmaker(
             engine, autoflush=False, expire_on_commit=False
         )

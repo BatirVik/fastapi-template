@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI):
     if not config.PROD:
         logger.warning("config.PROD == False")
 
-    await DB.connect(config.POSTGRES_URL.encoded_string())
+    await DB.connect(config.DB_URL.encoded_string())
     yield
     await DB.disconnect()
 
@@ -38,6 +38,9 @@ app = FastAPI(
     version=pyproject["project"]["version"],
     redirect_slashes=False,
     lifespan=lifespan,
+    redoc_url=None if config.PROD else "/redoc",
+    docs_url=None if config.PROD else "/docs",
+    openapi_url=None if config.PROD else "/openapi.json",
 )
 
 
