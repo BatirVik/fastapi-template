@@ -69,7 +69,9 @@ async def logging_middleware(
     elapsed = time.perf_counter() - start
 
     if elapsed > 1:
-        logger.warning("Request handling took longer than 1 second", elapsed=elapsed)
+        logger.warning(
+            "Request handling took longer than 1 second", elapsed=f"{elapsed:.2f}s"
+        )
 
     logger.info(
         "HTTP request",
@@ -78,6 +80,7 @@ async def logging_middleware(
         path=request.url.path,
         status=response.status_code,
         elapsed=f"{elapsed:.2f}s",
+        query=request.url.query,
     )
     return response
 

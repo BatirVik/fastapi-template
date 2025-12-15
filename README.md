@@ -12,7 +12,6 @@ Minimal template with useful things such as:
 - preconfigured logging 
   - bounded context vars per request
   - JSON serialization when `PROD=1`
-  - rich exception traceback formatting when `PROD=0`  
 
 - module with scripts
   - `uv run -m scripts.gen_env` outputs a template env file based on the config class

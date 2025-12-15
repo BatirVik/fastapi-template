@@ -2,10 +2,10 @@ import asyncio
 from typing import Any
 import pytest
 from alembic.config import Config
+from sqlalchemy import make_url
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.core import DB, Base
 from httpx import ASGITransport, AsyncClient
-from pydantic import PostgresDsn
-from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.sql import text
 
 from alembic import command
@@ -22,55 +22,38 @@ def anyio_backend():
 
 @pytest.fixture(autouse=True, scope="session")
 async def db_lifespan(worker_id: Any):
-    test_db_name = f"test_{worker_id}"
-    await DB.connect(config.DB_URL.encoded_string())
+    test_database = f"test_{worker_id}"
+    url = make_url(str(config.DB_URL))
 
-    async with DB.get_connection() as conn:
-        _ = await conn.execution_options(isolation_level="AUTOCOMMIT")
-        try:
-            _ = await conn.execute(text(f"DROP DATABASE {test_db_name}"))
-        except ProgrammingError:
-            pass
-
-        _ = await conn.execute(text(f"CREATE DATABASE {test_db_name}"))
-
-    # Reconnect to newly created test database
-    host_info = config.DB_URL.hosts()[0]
-    url = PostgresDsn.build(
-        scheme=config.DB_URL.scheme,
-        username=host_info.get("username"),
-        password=host_info.get("password"),
-        host=host_info.get("host"),
-        port=host_info.get("port"),
-        path=test_db_name,
-    ).encoded_string()
     await DB.connect(url)
 
+    async with DB.get_connection() as conn:
+        conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+        _ = await conn.execute(text(f"DROP DATABASE IF EXISTS {test_database}"))
+        _ = await conn.execute(text(f"CREATE DATABASE {test_database}"))
+
+    await DB.connect(url.set(database=test_database))
+
     alembic_config = Config("alembic.ini")
-    alembic_config.set_main_option("sqlalchemy.url", url)
-    await asyncio.get_event_loop().run_in_executor(
-        None, command.upgrade, alembic_config, "head"
-    )
+    alembic_config.attributes["engine"] = DB.engine
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     yield
-    await asyncio.get_event_loop().run_in_executor(
-        None, command.upgrade, alembic_config, "base"
-    )
-
-
-@pytest.fixture(autouse=True, scope="function")
-async def truncate_tables():
-    async with DB.get_session() as db:
-        tablenames = ", ".join(table.name for table in Base.metadata.sorted_tables)
-        if tablenames:
-            _ = await db.execute(text(f"TRUNCATE TABLE {tablenames} CASCADE"))
-            await db.commit()
-    yield
+    await asyncio.to_thread(command.downgrade, alembic_config, "base")
 
 
 @pytest.fixture
 async def db():
     async with DB.get_session() as session:
         yield session
+
+
+@pytest.fixture(autouse=True, scope="function")
+async def truncate_tables(db: AsyncSession):
+    if not Base.metadata.tables:
+        return
+    tablenames = ", ".join(table.name for table in Base.metadata.sorted_tables)
+    _ = await db.execute(text(f"TRUNCATE TABLE {tablenames} CASCADE"))
+    await db.commit()
 
 
 @pytest.fixture

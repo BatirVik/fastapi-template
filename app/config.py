@@ -20,7 +20,6 @@ class Config(BaseModel, frozen=True):
 
 @lru_cache
 def get_config() -> Config:
-    """Get singleton Config"""
     _ = load_dotenv(".env.test" if TEST else ".env")
     config = Config.model_validate(os.environ, extra="ignore")
     return config

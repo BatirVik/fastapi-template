@@ -1,4 +1,3 @@
-import sys
 import logging
 
 import structlog
@@ -21,11 +20,7 @@ def configure_logger(level: int, serialize: bool):
         processors.append(structlog.processors.format_exc_info)
         renderer = structlog.processors.JSONRenderer()
     else:
-        if "rich" in sys.modules:
-            formatter = structlog.dev.RichTracebackFormatter()
-        else:
-            formatter = structlog.dev.default_exception_formatter
-        renderer = structlog.dev.ConsoleRenderer(exception_formatter=formatter)
+        renderer = structlog.dev.ConsoleRenderer()
 
     structlog.configure(
         processors=[

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, ClassVar, override
 from uuid import UUID
 
-from sqlalchemy import MetaData, func
+from sqlalchemy import URL, MetaData, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -24,7 +24,7 @@ class DB:
     session_factory: async_sessionmaker[AsyncSession] | None = None
 
     @classmethod
-    async def connect(cls, url: str) -> None:
+    async def connect(cls, url: str | URL) -> None:
         if cls.engine or cls.session_factory:
             await cls.disconnect()
 
