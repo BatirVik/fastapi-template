@@ -44,7 +44,7 @@ uv run -m scripts.gen_env | tee .env .env.test
 uv run uvicorn app.app:app
 
 # Gunicorn/Uvicorn Production
-uv run gunicorn app.app:app --worker-class uvicorn.workers.UvicornWorker -w 4
+uv run gunicorn app.app:app -c gunicorn.conf.py
 ```
 
 ## Development
