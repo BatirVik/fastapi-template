@@ -22,5 +22,5 @@ class Config(BaseModel, frozen=True):
 def get_config() -> Config:
     """Get singleton Config"""
     _ = load_dotenv(".env.test" if TEST else ".env")
-    _config = Config.model_validate(os.environ, extra="ignore")
-    return _config
+    config = Config.model_validate(os.environ, extra="ignore")
+    return config
